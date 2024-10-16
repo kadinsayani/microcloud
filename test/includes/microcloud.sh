@@ -271,8 +271,8 @@ set_debug_binaries() {
     lxc exec "${name}" -- rm -f /var/snap/microcloud/common/microcloudd.debug
     lxc exec "${name}" -- rm -f /var/snap/microcloud/common/microcloud.debug
 
-    lxc file push --quiet "${MICROCLOUDD_DEBUG_PATH}" "${name}"/var/snap/microcloud/common/microcloudd.debug
-    lxc file push --quiet "${MICROCLOUD_DEBUG_PATH}" "${name}"/var/snap/microcloud/common/microcloud.debug
+    lxc file push --quiet "${MICROCLOUDD_DEBUG_PATH}" "${name}"/var/snap/microcloud/common/microcloudd.debug --mode 0755
+    lxc file push --quiet "${MICROCLOUD_DEBUG_PATH}" "${name}"/var/snap/microcloud/common/microcloud.debug --mode 0755
 
     lxc exec "${name}" -- systemctl restart snap.microcloud.daemon || true
   fi
@@ -756,12 +756,6 @@ reset_system() {
       lxc file push --quiet "${MICROCLOUD_SNAP_PATH}" "${name}"/root/microcloud.snap
     fi
 
-    # Collect go coverage files prior to resetting system.
-    if [ -n "${GOCOVERDIR}" ]; then
-      echo "Collecting Go coverage files"
-      lxc file pull -r "${name}" "/var/snap/microcloud/common/data/cover/*" "${GOCOVERDIR}" || true
-    fi
-
     lxc exec "${name}" -- ip link del lxdfan0 || true
 
     # Resync the time in case it got out of sync with the other VMs.
@@ -827,12 +821,6 @@ cluster_reset() {
       exec > /dev/null 2>&1
     fi
 
-    # Collect go coverage files prior to resetting system.
-    if [ -n "${GOCOVERDIR}" ]; then
-      echo "Collecting Go coverage files"
-      lxc file pull -r "${name}" "/var/snap/microcloud/common/data/cover/*" "${GOCOVERDIR}" || true
-    fi
-
     lxc exec "${name}" -- sh -c "
       for m in \$(lxc ls -f csv -c n) ; do
         lxc rm \$m -f
@@ -886,6 +874,11 @@ cluster_reset() {
 
 # reset_systems: Concurrently or sequentially resets the specified number of systems.
 reset_systems() {
+  if [ -n "${GOCOVERDIR}" ]; then
+    echo "==> Collecting Go coverage files"
+    lxc list -c n -f csv | xargs --no-run-if-empty -I {} lxc file pull -r {}/var/snap/microcloud/common/data/cover "${GOCOVERDIR}" || true
+  fi
+
   if [ "${SNAPSHOT_RESTORE}" = 1 ]; then
     # shellcheck disable=SC2048,SC2086
     restore_systems ${*}
@@ -946,6 +939,11 @@ restore_systems() {
   num_vms=3
   num_disks=3
   num_extra_ifaces=1
+
+  if [ -n "${GOCOVERDIR}" ]; then
+    echo "==> Collecting Go coverage files"
+    lxc list -c n -f csv | xargs --no-run-if-empty -I {} lxc file pull -r {}/var/snap/microcloud/common/data/cover "${GOCOVERDIR}" || true
+  fi
 
   if [[ "${1:-}" =~ ^[0-9]+$ ]]; then
     num_vms=${1}
@@ -1073,12 +1071,7 @@ cleanup_systems() {
   if lxc remote list -f csv | cut -d',' -f1 | grep -qF microcloud-test; then
       lxc remote remove microcloud-test || true
   fi
-  lxc project switch microcloud-test
-
-  if [ -n "${GOCOVERDIR}" ]; then
-    echo "==> Collecting Go coverage files"
-    lxc list -c n -f csv | xargs --no-run-if-empty -I {} lxc file pull -r "{}" "/var/snap/microcloud/common/data/cover/*" "${GOCOVERDIR}" || true
-  fi
+  lxc project switch microcloud-test 
 
   echo "==> Removing systems"
   lxc list -c n -f csv | xargs --no-run-if-empty lxc delete --force
