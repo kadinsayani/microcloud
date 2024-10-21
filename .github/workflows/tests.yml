@@ -5,11 +5,12 @@ on:
   push:
     branches:
       - main
+      - test-run
   pull_request:
   workflow_dispatch:
 
 env:
-  GOCOVERDIR: ${{ ( github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' ) && '/home/runner/work/microcloud/microcloud/cover' || '' }}
+  GOCOVERDIR: ${{ ( github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' ) && '/home/runner/work/microcloud/microcloud/cover' || '' }}
 
 permissions:
   contents: read
@@ -108,7 +109,7 @@ jobs:
       SKIP_VM_LAUNCH: "1"
       SNAPSHOT_RESTORE: "1"
     name: System
-    runs-on: GitHubMicrocloud 
+    runs-on: ubuntu-22.04 
     needs: code-tests
     strategy:
       fail-fast: false
@@ -231,7 +232,7 @@ jobs:
         run: mkdir -p "${GOCOVERDIR}"
         if: env.GOCOVERDIR != ''
 
-      - name: Build
+      - name: Sideload debug binaries
         run: |
           set -eux
 
@@ -322,7 +323,6 @@ jobs:
     name: Tiobe TICS
     runs-on: ubuntu-22.04
     needs: system-tests 
-    if: ${{ ( github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' ) && github.ref_name == 'main' && github.repository == 'canonical/microcloud' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
