@@ -315,7 +315,7 @@ jobs:
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.go }}-${{ matrix.suite }}
+          name: coverage-${{ matrix.go }}-${{ matrix.suite }}-${{ matrix.lxd }}-${{ matrix.microceph }}-${{ matrix.microovn }}-${{ matrix.microcloud }}
           path: ${{ env.GOCOVERDIR }} 
         if: env.GOCOVERDIR != ''
 
