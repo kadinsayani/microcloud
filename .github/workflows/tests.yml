@@ -85,7 +85,7 @@ jobs:
       - name: Unit tests
         run: |
           set -eux
-          sudo --preserve-env=PATH,GOPATH,GOCOVERDIR make check-unit 
+          make check-unit 
 
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
@@ -311,11 +311,12 @@ jobs:
           chmod +x ~
           cd test
           sudo --preserve-env=PATH,GOPATH,GOCOVERDIR,DEBUG,GITHUB_ACTIONS,MICROCLOUD_DEBUG_PATH,MICROCLOUDD_DEBUG_PATH,SKIP_VM_LAUNCH,SNAPSHOT_RESTORE,TEST_STORAGE_SOURCE,TESTBED_READY,BASE_OS,LXD_SNAP_CHANNEL,MICROCEPH_SNAP_CHANNEL,MICROOVN_SNAP_CHANNEL,MICROCLOUD_SNAP_CHANNEL ./main.sh ${{ matrix.suite }}
+          echo "TIMESTAMP=$(date +%Y%m%d_%H%M%S_%N)" >> "${GITHUB_ENV}"
 
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.go }}-${{ matrix.suite }}-${{ matrix.lxd }}-${{ matrix.microceph }}-${{ matrix.microovn }}-${{ matrix.microcloud }}
+          name: coverage-${{ matrix.go }}-${{ matrix.suite }}-${{ env.TIMESTAMP }}
           path: ${{ env.GOCOVERDIR }} 
         if: env.GOCOVERDIR != ''
 
